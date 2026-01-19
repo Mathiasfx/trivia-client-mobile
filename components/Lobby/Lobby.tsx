@@ -12,9 +12,9 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../types/navigation';
-import { socketService } from '../services/socketService';
-import type { Room, Player } from '../types/game';
+import { RootStackParamList } from '../../types/navigation';
+import { socketService } from '../../services/socketService';
+import type { Room, Player } from '../../types/game';
 
 type LobbyScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Lobby'>;
 type LobbyScreenRouteProp = RouteProp<RootStackParamList, 'Lobby'>;

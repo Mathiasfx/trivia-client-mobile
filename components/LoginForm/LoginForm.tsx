@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -16,10 +15,9 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "../types/navigation";
-import { socketService } from "../services/socketService";
-
-
+import { RootStackParamList } from "../../types/navigation";
+import { socketService } from "../../services/socketService";
+import { styles } from "./LoginForm.styles";
 
 type LoginScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -68,7 +66,6 @@ export const LoginForm = () => {
       socketService.on("roomStateUpdate", handleRoomStateUpdate);
       socketService.on("error", handleError);
 
-    
       setTimeout(() => {
         setIsLoading(false);
         socketService.off("roomStateUpdate", handleRoomStateUpdate);
@@ -81,7 +78,6 @@ export const LoginForm = () => {
     }
   };
 
-  //Animated Keyboard Dismiss
   const handleDismissKeyboard = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -101,7 +97,7 @@ export const LoginForm = () => {
     }, 150);
   };
 
-   return (
+  return (
     <TouchableWithoutFeedback onPress={handleDismissKeyboard}>
       <KeyboardAvoidingView
         style={styles.container}
@@ -170,81 +166,3 @@ export const LoginForm = () => {
     </TouchableWithoutFeedback>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#7C3AED",
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 24,
-    color: "#1F2937",
-  },
-  form: {
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 6,
-    color: "#374151",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: "#FFFFFF",
-    color: "#1F2937",
-  },
-  uppercaseInput: {
-    textTransform: "uppercase",
-  },
-  button: {
-    backgroundColor: "#7C3AED",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 6,
-  },
-  buttonDisabled: {
-    backgroundColor: "#9CA3AF",
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  footerText: {
-    textAlign: "center",
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 12,
-  },
-});
