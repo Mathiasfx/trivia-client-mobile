@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,12 +12,14 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   ScrollView, 
-  Animated
+  Animated,
+  Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types/navigation";
 import { socketService } from "../services/socketService";
+import Svg, { Path, Circle, G } from "react-native-svg";
 
 
 
@@ -32,6 +34,25 @@ export const LoginForm = () => {
   const [roomId, setRoomId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scaleAnim = new Animated.Value(1);
+  const floatAnim = new Animated.Value(0);
+
+  useEffect(() => {
+    // Animación de flotado continua
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 10,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [floatAnim]);
 
   const handleJoinGame = async () => {
     if (!playerName.trim() || !roomId.trim()) {
@@ -118,43 +139,77 @@ export const LoginForm = () => {
     <TouchableWithoutFeedback onPress={handleDismissKeyboard}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? -50 : 5}
-        enabled={Platform.OS === "ios"}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 200}
+        enabled={true}
       >
+        {/* Purple Section with Logo */}
+        <View style={styles.purpleSection}>
+          <Animated.Text 
+            style={[
+              styles.headerTitle,
+              {
+                transform: [
+                  { translateY: floatAnim },
+                  { rotate: "-16deg" }
+                ]
+              }
+            ]}
+          >
+            SUPER TRIVIA
+          </Animated.Text>
+        </View>
+
+        {/* SVG Wave Divider */}
+        <Svg height="60" width={Dimensions.get('window').width} style={styles.waveSvg} viewBox={`0 0 ${Dimensions.get('window').width} 100`} preserveAspectRatio="none">
+          <Path
+            d={`M 0,50 Q ${Dimensions.get('window').width * 0.25},80 ${Dimensions.get('window').width * 0.5},60 T ${Dimensions.get('window').width},100 L ${Dimensions.get('window').width},0 L 0,0 Z`}
+            fill="#6D449B"
+          />
+        </Svg>
+
+        {/* White Section with Form */}
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          scrollEnabled={Platform.OS === "android"}
+          scrollEnabled={true}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.card}>
-            <Text style={styles.title}>Trivia Game</Text>
-
+          <View style={styles.waveContainer}>
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Tu Nombre</Text>
-                <TextInput
-                  style={styles.input}
-                  value={playerName}
-                  onChangeText={setPlayerName}
-                  placeholder="Ingresa tu nombre"
-                  placeholderTextColor="#9CA3AF"
-                  maxLength={20}
-                  autoCapitalize="words"
-                />
+                <View style={styles.inputRow}>
+                  <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ marginRight: 12 }}>
+                    <Circle cx="12" cy="8" r="4" stroke="#1F2937" strokeWidth="2" />
+                    <Path d="M 4 20 Q 4 14 12 14 Q 20 14 20 20" stroke="#1F2937" strokeWidth="2" fill="none" />
+                  </Svg>
+                  <TextInput
+                    style={styles.input}
+                    value={playerName}
+                    onChangeText={setPlayerName}
+                    placeholder="Tu Nombre"
+                    placeholderTextColor="#9CA3AF"
+                    maxLength={20}
+                    autoCapitalize="words"
+                  />
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>ID de la Sala</Text>
-                <TextInput
-                  style={[styles.input, styles.uppercaseInput]}
-                  value={roomId}
-                  onChangeText={(text) => setRoomId(text.toUpperCase())}
-                  placeholder="Ingresa el ID de la sala"
-                  placeholderTextColor="#9CA3AF"
-                  maxLength={10}
-                  autoCapitalize="characters"
-                />
+                <View style={styles.inputRow}>
+                  <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ marginRight: 12 }}>
+                    <Path d="M 7 10 L 7 8 Q 7 4 12 4 Q 17 4 17 8 L 17 10 L 19 10 L 19 22 L 5 22 L 5 10 Z" stroke="#1F2937" strokeWidth="2" fill="none" />
+                    <Circle cx="12" cy="16" r="1.5" fill="#1F2937" />
+                  </Svg>
+                  <TextInput
+                    style={[styles.input, styles.uppercaseInput]}
+                    value={roomId}
+                    onChangeText={(text) => setRoomId(text.toUpperCase())}
+                    placeholder="ID de Sala"
+                    placeholderTextColor="#9CA3AF"
+                    maxLength={10}
+                    autoCapitalize="characters"
+                  />
+                </View>
               </View>
 
               <TouchableOpacity
@@ -169,14 +224,10 @@ export const LoginForm = () => {
                 {isLoading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.buttonText}>Unirse al Juego</Text>
+                  <Text style={styles.buttonText}>ÚNIRSE A LA FIESTA</Text>
                 )}
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.footerText}>
-              Ingresa tu nombre y el ID de la sala para comenzar
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -187,63 +238,83 @@ export const LoginForm = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#7C3AED",
+    backgroundColor: "#FFFFFF",
+  },
+  purpleSection: {
+    backgroundColor: "#6D449B",
+    paddingVertical: 60,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  waveSvg: {
+    backgroundColor: "#FFFFFF",
+  },
+  headerTitle: {
+    fontSize: 48,
+    fontWeight: "900",
+    color: "#FFCC00",
+    letterSpacing: 2,
+    textAlign: "center",
+    width: "100%",
+    marginTop: 20,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  card: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 24,
-    color: "#1F2937",
+  waveContainer: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 32,
+    paddingTop: 80,
+    paddingBottom: 120,
+    minHeight: 350,
+    zIndex: 10,
   },
   form: {
     marginBottom: 20,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 30,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#1F2937",
+    paddingBottom: 8,
+  },
+  icon: {
+    fontSize: 20,
+    marginRight: 12,
+    color: "#1F2937",
   },
   label: {
     fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 6,
-    color: "#374151",
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#1F2937",
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    flex: 1,
     fontSize: 16,
-    backgroundColor: "#FFFFFF",
     color: "#1F2937",
+    padding: 0,
+    backgroundColor: "transparent",
   },
   uppercaseInput: {
     textTransform: "uppercase",
   },
   button: {
-    backgroundColor: "#7C3AED",
-    paddingVertical: 12,
+    backgroundColor: "#6D449B",
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: "center",
-    marginTop: 6,
+    marginTop: 40,
   },
   buttonDisabled: {
     backgroundColor: "#9CA3AF",
@@ -252,7 +323,8 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 1,
   },
   footerText: {
     textAlign: "center",

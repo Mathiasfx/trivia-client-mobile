@@ -6,6 +6,8 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -39,6 +41,10 @@ export const Game = () => {
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const listenersRegistered = useRef(false);
 
+  // Animaciones
+  const timerProgressAnim = useRef(new Animated.Value(1)).current;
+  const questionScaleAnim = useRef(new Animated.Value(0)).current;
+  const optionsSlideAnim = useRef(new Animated.Value(0)).current;
 
   const currentPlayer = room?.players.find(p => p.id === playerId);
   const currentScore = currentPlayer?.score || 0;
@@ -67,6 +73,12 @@ export const Game = () => {
       setTimeRemaining(data.timerSeconds);
       setIsAnswerCorrect(null);
       setGameState('playing');
+      
+      // Iniciar animaciones cuando llega una nueva pregunta
+      setTimeout(() => {
+        resetLayoutAnimation();
+        startTimerAnimation(data.timerSeconds * 1000);
+      }, 100);
     };
 
     const handleAnswerSubmitted = (data: any) => {
@@ -157,6 +169,55 @@ export const Game = () => {
     return () => clearInterval(timer);
   }, [gameState, countdownValue]);
 
+  // ============================================
+  // FUNCIONES DE ANIMACIÓN (Separadas)
+  // ============================================
+  
+  /**
+   * Inicia la animación de barra de progreso consumible
+   * @param duration Duración en milisegundos (basada en timerSeconds)
+   */
+  const startTimerAnimation = (duration: number) => {
+    timerProgressAnim.setValue(1);
+    Animated.timing(timerProgressAnim, {
+      toValue: 0,
+      duration: duration,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  /**
+   * Resetea y ejecuta la animación de entrada (scale up con rebote) para pregunta y opciones
+   */
+  const resetLayoutAnimation = () => {
+    questionScaleAnim.setValue(0);
+    optionsSlideAnim.setValue(0);
+
+    // Animación de pregunta con spring effect
+    Animated.spring(questionScaleAnim, {
+      toValue: 1,
+      friction: 6,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+
+    // Animación de opciones con delay
+    Animated.sequence([
+      Animated.delay(150),
+      Animated.spring(optionsSlideAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  // ============================================
+  // LÓGICA EXISTENTE (Sin modificaciones)
+  // ============================================
+
   const handleSelectAnswer = (option: string) => {
     if (hasAnswered || timeRemaining <= 0) return;
 
@@ -169,7 +230,7 @@ export const Game = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#7C3AED" />
+          <ActivityIndicator size="large" color="#6D449B" />
           <Text style={styles.loadingText}>Esperando que inicie el juego...</Text>
         </View>
       </View>
@@ -203,7 +264,7 @@ export const Game = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>¡Juego Finalizado!</Text>
-          <Text style={styles.subtitle}>Resultados finales</Text>
+
         </View>
 
         <ScrollView style={styles.rankingFinalContainer}>
@@ -240,40 +301,78 @@ export const Game = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#7C3AED" />
+          <ActivityIndicator size="large" color="#6D449B" />
           <Text style={styles.loadingText}>Cargando pregunta... (Ronda {totalQuestions})</Text>
         </View>
       </View>
     );
   }
 
-  const timerColor = timeRemaining <= 5 ? '#EF4444' : '#10B981';
+
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.scoreContainer}>
-          <Text style={styles.scoreLabel}>Puntos</Text>
-          <Text style={styles.scoreValue}>{currentScore}</Text>
-        </View>
+     
         <Text style={styles.roundBadge}>Ronda {question.round}/{totalQuestions}</Text>
       </View>
 
-      {/* Timer */}
-      <View style={[styles.timerContainer, { backgroundColor: timerColor }]}>
-        <Text style={styles.timerText}>{timeRemaining}s</Text>
+      {/* Timer - Visual Progress Bar with Clock Icon */}
+      <View style={styles.timerBarWrapper}>
+        <Text style={styles.clockIcon}>🕐</Text>
+        <View style={styles.timerBarBackground}>
+          <Animated.View
+            style={[
+              styles.timerBarFill,
+              {
+                width: timerProgressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['100%', '0%'],
+                }),
+              },
+            ]}
+          />
+        </View>
       </View>
 
       {/* Main Content */}
       <ScrollView style={styles.content}>
-        {/* Question */}
-        <View style={styles.questionContainer}>
+        {/* Question - Animated Scale Up */}
+        <Animated.View
+          style={[
+            styles.questionContainer,
+            {
+              transform: [
+                {
+                  scale: questionScaleAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.1, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <Text style={styles.questionText}>{question.question}</Text>
-        </View>
+        </Animated.View>
 
-        {/* Options */}
-        <View style={styles.optionsContainer}>
+        {/* Options - Animated Scale Up with Delay */}
+        <Animated.View
+          style={[
+            styles.optionsContainer,
+            {
+              transform: [
+                {
+                  scale: optionsSlideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.1, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           {question.options.map((option, index) => {
             const isSelected = selectedAnswer === option;
             const isCorrectAnswer = option === room.currentQuestion?.correctAnswer;
@@ -305,7 +404,7 @@ export const Game = () => {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </Animated.View>
 
         {/* Feedback */}
         {hasAnswered && (
@@ -323,7 +422,7 @@ export const Game = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFCC00', 
   },
   loadingContainer: {
     flex: 1,
@@ -333,10 +432,10 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
+    color: '#6B3DB8',
   },
   header: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'transparent',
     paddingHorizontal: 20,
     paddingVertical: 12,
     paddingTop: 40,
@@ -347,44 +446,60 @@ const styles = StyleSheet.create({
   roundBadge: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#E9D5FF',
+    color: '#6B3DB8',
   },
   scoreContainer: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: '#6D449B',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   scoreLabel: {
     fontSize: 12,
-    color: '#E9D5FF',
+    color: '#FFFFFF',
   },
   scoreValue: {
     fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  timerContainer: {
-    paddingVertical: 12,
+  timerBarWrapper: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
   },
-  timerText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  clockIcon: {
+    fontSize: 24,
+  },
+  timerBarBackground: {
+    flex: 1,
+    height: 12,
+    backgroundColor: '#6D449B',
+    borderRadius: 12,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  timerBarFill: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
+ 
   questionContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
+    borderWidth: 4, 
+    borderColor: '#6D449B', 
+    padding: 24,
+    marginBottom: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -400,44 +515,50 @@ const styles = StyleSheet.create({
   optionsContainer: {
     marginBottom: 20,
   },
+ 
   optionButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
+    backgroundColor: '#6D449B', 
+    borderWidth: 0,
+    borderRadius: 12, 
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingHorizontal: 20,
+    marginBottom: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 54,
   },
   optionText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   selectedOption: {
-    backgroundColor: '#EDE9FE',
-    borderColor: '#7C3AED',
+    backgroundColor: '#6D449B', 
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
   selectedOptionText: {
-    color: '#7C3AED',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
+ 
   correctAnswer: {
-    backgroundColor: '#D1FAE5',
-    borderColor: '#10B981',
+    backgroundColor: '#4CAF50', 
+    borderWidth: 0,
   },
   correctAnswerText: {
-    color: '#059669',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
+
   wrongAnswer: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#EF4444',
+    backgroundColor: '#F44336', 
+    borderWidth: 0,
   },
   wrongAnswerText: {
-    color: '#DC2626',
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   feedbackContainer: {
     paddingVertical: 12,
@@ -445,40 +566,44 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
     alignItems: 'center',
+    display: 'none', 
   },
   correctFeedback: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'transparent',
   },
   wrongFeedback: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'transparent',
   },
   feedbackText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
+    display: 'none',
   },
+
   dramaticContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+    backgroundColor: '#FFCC00',
   },
   dramaticLabel: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#6D449B',
     marginBottom: 20,
   },
   dramaticLargeText: {
     fontSize: 120,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#6D449B',
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 8,
+    marginTop:10,
   },
   subtitle: {
     fontSize: 16,
@@ -488,6 +613,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 20,
+    backgroundColor: '#FFCC00',
   },
   rankingFinalItem: {
     backgroundColor: '#FFFFFF',
@@ -503,9 +629,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   firstPlace: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#6D449B',
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: '#6D449B',
   },
   medalContainer: {
     width: 50,
@@ -525,16 +651,16 @@ const styles = StyleSheet.create({
   finalPlayerName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   finalPlayerScore: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#059669',
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   backButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#6D449B',
     marginHorizontal: 16,
     marginBottom: 20,
     paddingVertical: 14,
@@ -569,7 +695,7 @@ const styles = StyleSheet.create({
   rankingPosition: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#6D449B',
     width: 30,
   },
   rankingName: {

@@ -141,7 +141,7 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
   if (!room) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="#6D449B" />
       </View>
     );
   }
@@ -209,7 +209,7 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
             <Text style={styles.waitingText}>
               Esperando que el administrador inicie el juego...
             </Text>
-            <ActivityIndicator size="small" color="#7C3AED" />
+            <ActivityIndicator size="small" color="#6D449B" />
           </View>
         )}
       </View>
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   header: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#6D449B',
     padding: 20,
     paddingTop: 40,
   },
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   countdownContainer: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#6D449B',
     justifyContent: 'center',
     alignItems: 'center',
   },
