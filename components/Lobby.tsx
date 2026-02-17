@@ -26,20 +26,17 @@ export const Lobby = () => {
 
 const [room, setRoom] = useState<Room>(initialRoom);
 const [isStartingGame, setIsStartingGame] = useState(false);
+const [countdownValue, setCountdownValue] = useState<number | null>(null);
 
   useEffect(() => {
 
+    const handleCountdown = () => {
+      console.log('✅ Countdown iniciado en Lobby');
+      setCountdownValue(3);
+    };
+
     const handleRoomStateUpdate = (updatedRoom: Room) => {
       setRoom(updatedRoom);
-      
-   
-      if (updatedRoom.isActive) {
-        navigation.navigate('Game', {
-          playerName,
-          playerId,
-          room: updatedRoom,
-        });
-      }
     };
 
     const handlePlayerJoined = (player: Player) => {
@@ -55,6 +52,7 @@ const [isStartingGame, setIsStartingGame] = useState(false);
 };
 
     const handleGameStarted = (data: any) => {
+      console.log('✅ GameStarted recibido en Lobby');
       navigation.navigate('Game', {
         playerName,
         playerId,
@@ -67,6 +65,7 @@ const [isStartingGame, setIsStartingGame] = useState(false);
       setIsStartingGame(false);
     };
 
+    socketService.on('countdown', handleCountdown);
     socketService.on('roomStateUpdate', handleRoomStateUpdate);
     socketService.on('playerJoined', handlePlayerJoined);
     socketService.on('playerLeft', handlePlayerLeft);
@@ -74,6 +73,7 @@ const [isStartingGame, setIsStartingGame] = useState(false);
     socketService.on('error', handleError);
 
     return () => {
+      socketService.off('countdown', handleCountdown);
       socketService.off('roomStateUpdate', handleRoomStateUpdate);
       socketService.off('playerJoined', handlePlayerJoined);
       socketService.off('playerLeft', handlePlayerLeft);
@@ -81,6 +81,33 @@ const [isStartingGame, setIsStartingGame] = useState(false);
       socketService.off('error', handleError);
     };
   }, [navigation, playerName, playerId, room]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdownValue === null || countdownValue <= 0) return;
+
+    const timer = setInterval(() => {
+      setCountdownValue(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdownValue]);
+
+  // Si está en countdown, mostrar pantalla dramática
+  if (countdownValue !== null && countdownValue > 0) {
+    return (
+      <View style={styles.countdownContainer}>
+        <Text style={styles.countdownLabel}>El juego comienza en</Text>
+        <Text style={styles.countdownValue}>{countdownValue}</Text>
+      </View>
+    );
+  }
 
   const handleStartGame = () => {
     if (!room) return;
@@ -92,7 +119,7 @@ const [isStartingGame, setIsStartingGame] = useState(false);
       return;
     }
 
-    if (room.players.length < 2) {
+    if (room.players.filter(p => !p.isAdmin).length < 2) {
       Alert.alert('Error', 'Se necesitan al menos 2 jugadores para comenzar');
       return;
     }
@@ -122,22 +149,22 @@ const [isStartingGame, setIsStartingGame] = useState(false);
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Sala de Espera</Text>
+        <Text style={styles.title}>Lobby</Text>
         <View style={styles.roomInfo}>
           <Text style={styles.roomId}>Sala: {roomId}</Text>
           <Text style={styles.playerCount}>
-            Jugadores: {room.players.length}/10
+            Jugadores: {room.players.filter(p => !p.isAdmin).length}/10
           </Text>
         </View>
       </View>
 
       <ScrollView style={styles.playersContainer}>
         <Text style={styles.sectionTitle}>Jugadores Conectados</Text>
-        {room.players.map((player) => (
+        {room.players.filter(p => !p.isAdmin).map((player) => (
           <View key={player.id} style={styles.playerCard}>
             <View style={styles.playerInfo}>
               <Text style={styles.playerName}>
-                {player.name} {player.isAdmin }
+                {player.name}
               </Text>
               <Text style={styles.playerStatus}>
                 {player.id === playerId ? 'Tú' : 'Conectado'}
@@ -147,7 +174,7 @@ const [isStartingGame, setIsStartingGame] = useState(false);
           </View>
         ))}
 
-        {room.players.length === 0 && (
+        {room.players.filter(p => !p.isAdmin).length === 0 && (
           <Text style={styles.emptyText}>
             Esperando jugadores...
           </Text>
@@ -162,14 +189,14 @@ const [isStartingGame, setIsStartingGame] = useState(false);
               (room.players.length < 2 || isStartingGame) && styles.buttonDisabled
             ]}
             onPress={handleStartGame}
-            disabled={room.players.length < 2 || isStartingGame}
+            disabled={room.players.filter(p => !p.isAdmin).length < 2 || isStartingGame}
           >
             {isStartingGame ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <Text style={styles.startButtonText}>
-                {room.players.length < 2 
-                  ? `Esperando jugadores (${room.players.length}/2)` 
+                {room.players.filter(p => !p.isAdmin).length < 2 
+                  ? `Esperando jugadores (${room.players.filter(p => !p.isAdmin).length}/2)` 
                   : 'Iniciar Juego'
                 }
               </Text>
@@ -300,5 +327,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  countdownContainer: {
+    flex: 1,
+    backgroundColor: '#7C3AED',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countdownLabel: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 20,
+  },
+  countdownValue: {
+    fontSize: 120,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
 });

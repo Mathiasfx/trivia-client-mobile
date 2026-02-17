@@ -21,6 +21,7 @@ export interface Room {
   round: number;
   questions: Question[];
   currentQuestion?: Question;
+  gameStarted: boolean;
 }
 
 export interface GameMessage {

@@ -20,16 +20,16 @@ class SocketService {
   private apiTimeout: number;
 
   constructor() {
-    this.socketUrl = expoConfig.socketUrl || 'http://localhost:3007/rooms';
+    this.socketUrl = 'https://nest-trivia-api.onrender.com/rooms';
     this.reconnectionAttempts = expoConfig.maxReconnectionAttempts || 10;
-    this.apiTimeout = expoConfig.apiTimeout || 5000;
+    this.apiTimeout = expoConfig.apiTimeout || 15000;
   }
 
   connect() {
     this.connectionPromise = new Promise((resolve, reject) => {
+      console.log('Intentando conectar a:', this.socketUrl);
       this.socket = io(this.socketUrl, {
-        withCredentials: true,
-        transports: [ 'polling','websocket'], 
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
@@ -38,13 +38,24 @@ class SocketService {
         forceNew: false,
       });
 
+      // Timeout para la promesa de conexión
+      const connectionTimeout = setTimeout(() => {
+        console.error('Timeout de conexión alcanzado después de ' + this.apiTimeout + 'ms');
+        if (!this.isConnected) {
+          reject(new Error('Timeout al conectar al servidor'));
+        }
+      }, this.apiTimeout);
+
       this.socket.on('connect', () => {
+        console.log('Socket conectado exitosamente');
+        clearTimeout(connectionTimeout);
         this.isConnected = true;
         this.emit('connect');
         resolve();
       });
 
       this.socket.on('disconnect', () => {
+        console.log('Socket desconectado');
         this.isConnected = false;
         this.emit('disconnect');
       });
@@ -56,6 +67,7 @@ class SocketService {
 
       this.socket.on('reconnect_failed', () => {
         console.error('Falló la reconexión después de múltiples intentos');
+        clearTimeout(connectionTimeout);
         reject(new Error('No se pudo conectar al servidor después de múltiples intentos'));
       });
 

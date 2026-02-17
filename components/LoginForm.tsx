@@ -40,14 +40,19 @@ export const LoginForm = () => {
     }
     setIsLoading(true);
     try {
-      socketService.connect();
-      socketService.joinRoom(roomId.trim().toUpperCase(), playerName.trim());
+      await socketService.connect();
+      console.log('Socket conectado, preparando join...');
+      
       const handleRoomStateUpdate = (room: any) => {
+        console.log('roomStateUpdate recibido:', room);
         const player = room.players.find(
           (p: any) => p.name === playerName.trim(),
         );
         if (player) {
           setIsLoading(false);
+          socketService.off("roomStateUpdate", handleRoomStateUpdate);
+          socketService.off("error", handleError);
+          clearTimeout(timeoutId);
           navigation.navigate("Lobby", {
             playerName: playerName.trim(),
             roomId: roomId.trim().toUpperCase(),
@@ -58,26 +63,34 @@ export const LoginForm = () => {
       };
 
       const handleError = (error: any) => {
+        console.log('Error event recibido:', error);
         setIsLoading(false);
+        socketService.off("roomStateUpdate", handleRoomStateUpdate);
+        socketService.off("error", handleError);
+        clearTimeout(timeoutId);
         Alert.alert(
           "Error de conexión",
           error.message || "No se pudo conectar a la sala. Intenta nuevamente.",
         );
       };
 
+      // Registrar listeners ANTES de hacer join
       socketService.on("roomStateUpdate", handleRoomStateUpdate);
       socketService.on("error", handleError);
 
-    
-      setTimeout(() => {
+      console.log('Emitiendo joinRoom...');
+      socketService.joinRoom(roomId.trim().toUpperCase(), playerName.trim());
+      
+      const timeoutId = setTimeout(() => {
         setIsLoading(false);
         socketService.off("roomStateUpdate", handleRoomStateUpdate);
         socketService.off("error", handleError);
         Alert.alert("Error", "Tiempo de espera agotado. Intenta nuevamente.");
-      }, 5000);
+      }, 20000);
     } catch (error) {
       setIsLoading(false);
       Alert.alert("Error", "No se pudo conectar al servidor");
+      console.error('Error en handleJoinGame:', error);
     }
   };
 
