@@ -4,34 +4,34 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
+import { useTheme } from '../hooks/useTheme';
 import { socketService } from '../services/socketService';
 import type { Room, Player } from '../types/game';
+import type { ThemeConfig } from '../contexts/ThemeContext';
 
 type LobbyScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Lobby'>;
 type LobbyScreenRouteProp = RouteProp<RootStackParamList, 'Lobby'>;
 
-export const Lobby = () => {
+export const LobbyScreen = () => {
   const navigation = useNavigation<LobbyScreenNavigationProp>();
   const route = useRoute<LobbyScreenRouteProp>();
+  const { theme } = useTheme();
   const { playerName, roomId, playerId, room: initialRoom } = route.params;
+  const styles = createStyles(theme);
 
 const [room, setRoom] = useState<Room>(initialRoom);
-const [isStartingGame, setIsStartingGame] = useState(false);
 const [countdownValue, setCountdownValue] = useState<number | null>(null);
 
   useEffect(() => {
 
     const handleCountdown = () => {
-      console.log('✅ Countdown iniciado en Lobby');
       setCountdownValue(3);
     };
 
@@ -52,7 +52,7 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
 };
 
     const handleGameStarted = (data: any) => {
-      console.log('✅ GameStarted recibido en Lobby');
+
       navigation.navigate('Game', {
         playerName,
         playerId,
@@ -61,8 +61,7 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
     };
 
     const handleError = (error: any) => {
-      Alert.alert('Error', error.message || 'Ocurrió un error en la sala');
-      setIsStartingGame(false);
+      console.error('Error en sala:', error.message);
     };
 
     socketService.on('countdown', handleCountdown);
@@ -109,39 +108,13 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
     );
   }
 
-  const handleStartGame = () => {
-    if (!room) return;
-
-
-    const currentPlayer = room.players.find(p => p.id === playerId);
-    if (!currentPlayer?.isAdmin) {
-      Alert.alert('Error', 'Solo el administrador puede iniciar el juego');
-      return;
-    }
-
-    if (room.players.filter(p => !p.isAdmin).length < 2) {
-      Alert.alert('Error', 'Se necesitan al menos 2 jugadores para comenzar');
-      return;
-    }
-
-    setIsStartingGame(true);
-    
-    try {
-      const triviaId = room.triviaId || 'default-trivia';
-      socketService.startGame(roomId, triviaId);
-    } catch (error) {
-      setIsStartingGame(false);
-      Alert.alert('Error', 'No se pudo iniciar el juego');
-    }
-  };
-
   const currentPlayer = room?.players.find(p => p.id === playerId);
   const isAdmin = currentPlayer?.isAdmin || false;
 
   if (!room) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#6D449B" />
+        <ActivityIndicator size="large" color={theme.primaryColor} />
       </View>
     );
   }
@@ -170,7 +143,7 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
                 {player.id === playerId ? 'Tú' : 'Conectado'}
               </Text>
             </View>
-            <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+            <View style={[styles.statusDot, { backgroundColor: theme.accentColor }]} />
           </View>
         ))}
 
@@ -182,55 +155,31 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
       </ScrollView>
 
       <View style={styles.footer}>
-        {isAdmin && (
-          <TouchableOpacity
-            style={[
-              styles.startButton,
-              (room.players.length < 2 || isStartingGame) && styles.buttonDisabled
-            ]}
-            onPress={handleStartGame}
-            disabled={room.players.filter(p => !p.isAdmin).length < 2 || isStartingGame}
-          >
-            {isStartingGame ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.startButtonText}>
-                {room.players.filter(p => !p.isAdmin).length < 2 
-                  ? `Esperando jugadores (${room.players.filter(p => !p.isAdmin).length}/2)` 
-                  : 'Iniciar Juego'
-                }
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {!isAdmin && (
-          <View style={styles.waitingMessage}>
-            <Text style={styles.waitingText}>
-              Esperando que el administrador inicie el juego...
-            </Text>
-            <ActivityIndicator size="small" color="#6D449B" />
-          </View>
-        )}
+        <View style={styles.waitingMessage}>
+          <Text style={styles.waitingText}>
+            Esperando que el administrador inicie el juego desde el dashboard...
+          </Text>
+          <ActivityIndicator size="small" color={theme.primaryColor} />
+        </View>
       </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeConfig) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F3F4F6',
   },
   header: {
-    backgroundColor: '#6D449B',
+    backgroundColor: theme.primaryColor,
     padding: 20,
     paddingTop: 40,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: theme.textLight,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -241,7 +190,7 @@ const styles = StyleSheet.create({
   },
   roomId: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: theme.textLight,
     fontWeight: '600',
   },
   playerCount: {
@@ -255,11 +204,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.textDark,
     marginBottom: 16,
   },
   playerCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.textLight,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -278,7 +227,7 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.textDark,
     marginBottom: 4,
   },
   playerStatus: {
@@ -298,25 +247,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.textLight,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
-  },
-  startButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#9CA3AF',
-    opacity: 0.6,
-  },
-  startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   waitingMessage: {
     alignItems: 'center',
@@ -330,19 +263,19 @@ const styles = StyleSheet.create({
   },
   countdownContainer: {
     flex: 1,
-    backgroundColor: '#6D449B',
+    backgroundColor: theme.primaryColor,
     justifyContent: 'center',
     alignItems: 'center',
   },
   countdownLabel: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.textLight,
     marginBottom: 20,
   },
   countdownValue: {
     fontSize: 120,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: theme.textLight,
   },
 });

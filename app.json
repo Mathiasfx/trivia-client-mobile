@@ -20,7 +20,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.mathiaspereiradev.triviaclientmobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,7 +29,10 @@
     "extra": {
       "socketUrl": "http://localhost:3007/rooms",
       "apiTimeout": 5000,
-      "maxReconnectionAttempts": 10
+      "maxReconnectionAttempts": 10,
+      "eas": {
+        "projectId": "d620ff8c-9b2e-44c3-a0d3-c05e9f7dd05a"
+      }
     }
   }
 }

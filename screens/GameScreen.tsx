@@ -8,21 +8,26 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
+import { useTheme } from '../hooks/useTheme';
 import { socketService } from '../services/socketService';
 import type { Room, Player } from '../types/game';
+import type { ThemeConfig } from '../contexts/ThemeContext';
 
 type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Game'>;
 type GameScreenRouteProp = RouteProp<RootStackParamList, 'Game'>;
 
-export const Game = () => {
+export const GameScreen = () => {
   const navigation = useNavigation<GameScreenNavigationProp>();
   const route = useRoute<GameScreenRouteProp>();
+  const { theme } = useTheme();
   const { playerId, room: initialRoom } = route.params;
+  const styles = createStyles(theme);
 
   const [room, setRoom] = useState<Room>(initialRoom);
   const [question, setQuestion] = useState<{
@@ -41,13 +46,16 @@ export const Game = () => {
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const listenersRegistered = useRef(false);
 
-  // Animaciones
+  
   const timerProgressAnim = useRef(new Animated.Value(1)).current;
   const questionScaleAnim = useRef(new Animated.Value(0)).current;
   const optionsSlideAnim = useRef(new Animated.Value(0)).current;
 
-  const currentPlayer = room?.players.find(p => p.id === playerId);
-  const currentScore = currentPlayer?.score || 0;
+  useEffect(() => {
+    if (initialRoom?.questions?.length) {
+      setTotalQuestions(initialRoom.questions.length);
+    }
+  }, [initialRoom]);
 
   useEffect(() => {
 
@@ -61,7 +69,7 @@ export const Game = () => {
     };
 
     const handleGameStarted = (data: any) => {
-     
+
       setTotalQuestions(data.totalQuestions);
     };
 
@@ -73,8 +81,11 @@ export const Game = () => {
       setTimeRemaining(data.timerSeconds);
       setIsAnswerCorrect(null);
       setGameState('playing');
+      if (data.totalQuestions) {
+        setTotalQuestions(data.totalQuestions);
+      }
       
-      // Iniciar animaciones cuando llega una nueva pregunta
+      //Animation Question and anwserd
       setTimeout(() => {
         resetLayoutAnimation();
         startTimerAnimation(data.timerSeconds * 1000);
@@ -130,7 +141,7 @@ export const Game = () => {
     };
   }, []);
 
-  // Timer countdown para preguntas
+  // Timer countdown for each question
   useEffect(() => {
     if (!question || timeRemaining <= 0 || gameState !== 'playing') return;
 
@@ -142,7 +153,7 @@ export const Game = () => {
         }
         return prev - 1;
       });
-    }, 1000);
+    }, 1500);
 
     return () => clearInterval(timer);
   }, [question, timeRemaining, gameState]);
@@ -169,13 +180,10 @@ export const Game = () => {
     return () => clearInterval(timer);
   }, [gameState, countdownValue]);
 
-  // ============================================
-  // FUNCIONES DE ANIMACIÓN (Separadas)
-  // ============================================
   
   /**
-   * Inicia la animación de barra de progreso consumible
-   * @param duration Duración en milisegundos (basada en timerSeconds)
+   * Starts the progress bar animation
+   * @param duration Duration in milliseconds (based on timerSeconds)
    */
   const startTimerAnimation = (duration: number) => {
     timerProgressAnim.setValue(1);
@@ -188,41 +196,36 @@ export const Game = () => {
   };
 
   /**
-   * Resetea y ejecuta la animación de entrada (scale up con rebote) para pregunta y opciones
+   * Resets and starts the entry animation 
    */
   const resetLayoutAnimation = () => {
     questionScaleAnim.setValue(0);
     optionsSlideAnim.setValue(0);
 
-    // Animación de pregunta con spring effect
+    // Question animation with spring effect
     Animated.spring(questionScaleAnim, {
       toValue: 1,
-      friction: 6,
-      tension: 40,
+      friction: 8,
+      tension: 37,
       useNativeDriver: true,
     }).start();
 
-    // Animación de opciones con delay
+    // Options animation with delay
     Animated.sequence([
-      Animated.delay(150),
+      Animated.delay(170),
       Animated.spring(optionsSlideAnim, {
         toValue: 1,
-        friction: 8,
+        friction: 10,
         tension: 50,
         useNativeDriver: true,
       }),
     ]).start();
   };
 
-  // ============================================
-  // LÓGICA EXISTENTE (Sin modificaciones)
-  // ============================================
 
   const handleSelectAnswer = (option: string) => {
     if (hasAnswered || timeRemaining <= 0) return;
-
     setSelectedAnswer(option);
-
     socketService.submitAnswer(room.id, playerId, option);
   };
 
@@ -263,7 +266,7 @@ export const Game = () => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>¡Juego Finalizado!</Text>
+          <Text style={styles.title}>¡Resultados!</Text>
 
         </View>
 
@@ -312,15 +315,13 @@ export const Game = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-     
+      <View style={styles.header}>     
         <Text style={styles.roundBadge}>Ronda {question.round}/{totalQuestions}</Text>
       </View>
 
       {/* Timer - Visual Progress Bar with Clock Icon */}
       <View style={styles.timerBarWrapper}>
-        <Text style={styles.clockIcon}>🕐</Text>
+        <Image source={theme.timerIconSource} style={styles.timerImage} />
         <View style={styles.timerBarBackground}>
           <Animated.View
             style={[
@@ -336,9 +337,8 @@ export const Game = () => {
         </View>
       </View>
 
-      {/* Main Content */}
+  
       <ScrollView style={styles.content}>
-        {/* Question - Animated Scale Up */}
         <Animated.View
           style={[
             styles.questionContainer,
@@ -357,7 +357,6 @@ export const Game = () => {
           <Text style={styles.questionText}>{question.question}</Text>
         </Animated.View>
 
-        {/* Options - Animated Scale Up with Delay */}
         <Animated.View
           style={[
             styles.optionsContainer,
@@ -405,24 +404,15 @@ export const Game = () => {
             );
           })}
         </Animated.View>
-
-        {/* Feedback */}
-        {hasAnswered && (
-          <View style={[styles.feedbackContainer, isAnswerCorrect ? styles.correctFeedback : styles.wrongFeedback]}>
-            <Text style={styles.feedbackText}>
-              {isAnswerCorrect ? '✓ ¡Correcto!' : '✗ Incorrecto'}
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeConfig) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFCC00', 
+    backgroundColor: theme.secondaryColor, 
   },
   loadingContainer: {
     flex: 1,
@@ -432,7 +422,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B3DB8',
+    color: theme.primaryColor,
   },
   header: {
     backgroundColor: 'transparent',
@@ -446,23 +436,7 @@ const styles = StyleSheet.create({
   roundBadge: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B3DB8',
-  },
-  scoreContainer: {
-    alignItems: 'center',
-    backgroundColor: '#6D449B',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  scoreLabel: {
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
-  scoreValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.primaryColor,
   },
   timerBarWrapper: {
     flexDirection: 'row',
@@ -471,13 +445,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
   },
-  clockIcon: {
-    fontSize: 24,
+  timerImage: {
+    width: 50,
+    height: 50,
+    resizeMode: 'cover',
   },
   timerBarBackground: {
     flex: 1,
     height: 12,
-    backgroundColor: '#6D449B',
+    backgroundColor: theme.primaryColor,
     borderRadius: 12,
     overflow: 'hidden',
     flexDirection: 'row',
@@ -485,19 +461,18 @@ const styles = StyleSheet.create({
   },
   timerBarFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.textLight,
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
- 
   questionContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.textLight,
     borderRadius: 12,
     borderWidth: 4, 
-    borderColor: '#6D449B', 
+    borderColor: theme.primaryColor, 
     padding: 24,
     marginBottom: 28,
     shadowColor: '#000',
@@ -509,15 +484,14 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.textDark,
     lineHeight: 28,
   },
   optionsContainer: {
     marginBottom: 20,
   },
- 
   optionButton: {
-    backgroundColor: '#6D449B', 
+    backgroundColor: theme.primaryColor, 
     borderWidth: 0,
     borderRadius: 12, 
     paddingVertical: 16,
@@ -530,93 +504,65 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.textLight,
     textAlign: 'center',
   },
   selectedOption: {
-    backgroundColor: '#6D449B', 
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+    backgroundColor: theme.primaryColor,
   },
   selectedOptionText: {
-    color: '#FFFFFF',
+    color: theme.textLight,
     fontWeight: '700',
   },
- 
   correctAnswer: {
-    backgroundColor: '#4CAF50', 
+    backgroundColor: theme.successColor, 
     borderWidth: 0,
   },
   correctAnswerText: {
-    color: '#FFFFFF',
+    color: theme.textLight,
     fontWeight: '700',
   },
-
   wrongAnswer: {
-    backgroundColor: '#F44336', 
+    backgroundColor: theme.wrongColor, 
     borderWidth: 0,
   },
   wrongAnswerText: {
-    color: '#FFFFFF',
+    color: theme.textLight,
     fontWeight: '700',
   },
-  feedbackContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    marginBottom: 20,
-    alignItems: 'center',
-    display: 'none', 
-  },
-  correctFeedback: {
-    backgroundColor: 'transparent',
-  },
-  wrongFeedback: {
-    backgroundColor: 'transparent',
-  },
-  feedbackText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    display: 'none',
-  },
-
   dramaticContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFCC00',
+    backgroundColor: theme.secondaryColor,
   },
   dramaticLabel: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#6D449B',
+    color: theme.primaryColor,
     marginBottom: 20,
   },
   dramaticLargeText: {
     fontSize: 120,
     fontWeight: '900',
-    color: '#6D449B',
+    color: theme.primaryColor,
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.textLight,
     marginBottom: 8,
-    marginTop:10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#E9D5FF',
+    marginTop:25,   
+    textAlign: 'center',
   },
   rankingFinalContainer: {
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 20,
-    backgroundColor: '#FFCC00',
+    backgroundColor: theme.secondaryColor,
   },
   rankingFinalItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.textLight,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -629,9 +575,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   firstPlace: {
-    backgroundColor: '#6D449B',
+    backgroundColor: theme.primaryColor,
     borderWidth: 2,
-    borderColor: '#6D449B',
+    borderColor: theme.primaryColor,
   },
   medalContainer: {
     width: 50,
@@ -651,16 +597,16 @@ const styles = StyleSheet.create({
   finalPlayerName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.textLight,
     marginBottom: 4,
   },
   finalPlayerScore: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.textLight,
   },
   backButton: {
-    backgroundColor: '#6D449B',
+    backgroundColor: theme.primaryColor,
     marginHorizontal: 16,
     marginBottom: 20,
     paddingVertical: 14,
@@ -668,45 +614,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonText: {
-    color: '#FFFFFF',
+    color: theme.textLight,
     fontSize: 16,
     fontWeight: '600',
-  },
-  rankingContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  rankingTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  rankingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  rankingPosition: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6D449B',
-    width: 30,
-  },
-  rankingName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2937',
-    flex: 1,
-  },
-  rankingScore: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#059669',
   },
 });

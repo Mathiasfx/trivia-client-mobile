@@ -1,14 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
+  Image,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Keyboard,
   TouchableWithoutFeedback,
   ScrollView, 
@@ -18,8 +16,12 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types/navigation";
+import { useTheme } from "../hooks/useTheme";
 import { socketService } from "../services/socketService";
-import Svg, { Path, Circle, G } from "react-native-svg";
+import { Button } from "../components/Button";
+import { InputField } from "../components/InputField";
+import Svg, { Path, Circle } from "react-native-svg";
+import type { ThemeConfig } from "../contexts/ThemeContext";
 
 
 
@@ -28,20 +30,24 @@ type LoginScreenNavigationProp = StackNavigationProp<
   "Login"
 >;
 
-export const LoginForm = () => {
+const AnimatedImage = Animated.createAnimatedComponent(Image);
+
+export const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const { theme } = useTheme();
   const [playerName, setPlayerName] = useState("");
   const [roomId, setRoomId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const scaleAnim = new Animated.Value(1);
-  const floatAnim = new Animated.Value(0);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const styles = createStyles(theme);
 
   useEffect(() => {
-    // Animación de flotado continua
+  
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, {
-          toValue: 10,
+          toValue: 15,
           duration: 2000,
           useNativeDriver: true,
         }),
@@ -52,7 +58,7 @@ export const LoginForm = () => {
         }),
       ])
     ).start();
-  }, [floatAnim]);
+  }, []);
 
   const handleJoinGame = async () => {
     if (!playerName.trim() || !roomId.trim()) {
@@ -62,10 +68,10 @@ export const LoginForm = () => {
     setIsLoading(true);
     try {
       await socketService.connect();
-      console.log('Socket conectado, preparando join...');
+ 
       
       const handleRoomStateUpdate = (room: any) => {
-        console.log('roomStateUpdate recibido:', room);
+   
         const player = room.players.find(
           (p: any) => p.name === playerName.trim(),
         );
@@ -84,7 +90,7 @@ export const LoginForm = () => {
       };
 
       const handleError = (error: any) => {
-        console.log('Error event recibido:', error);
+ 
         setIsLoading(false);
         socketService.off("roomStateUpdate", handleRoomStateUpdate);
         socketService.off("error", handleError);
@@ -95,11 +101,11 @@ export const LoginForm = () => {
         );
       };
 
-      // Registrar listeners ANTES de hacer join
+  
       socketService.on("roomStateUpdate", handleRoomStateUpdate);
       socketService.on("error", handleError);
 
-      console.log('Emitiendo joinRoom...');
+ 
       socketService.joinRoom(roomId.trim().toUpperCase(), playerName.trim());
       
       const timeoutId = setTimeout(() => {
@@ -115,7 +121,7 @@ export const LoginForm = () => {
     }
   };
 
-  //Animated Keyboard Dismiss
+
   const handleDismissKeyboard = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -141,13 +147,14 @@ export const LoginForm = () => {
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "padding"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 200}
-        enabled={true}
+        enabled={false}
       >
-        {/* Purple Section with Logo */}
+     
         <View style={styles.purpleSection}>
-          <Animated.Text 
+          <AnimatedImage 
+            source={theme.logoSource}
             style={[
-              styles.headerTitle,
+              styles.logoImage,
               {
                 transform: [
                   { translateY: floatAnim },
@@ -155,12 +162,10 @@ export const LoginForm = () => {
                 ]
               }
             ]}
-          >
-            SUPER TRIVIA
-          </Animated.Text>
+          />
         </View>
 
-        {/* SVG Wave Divider */}
+
         <Svg height="60" width={Dimensions.get('window').width} style={styles.waveSvg} viewBox={`0 0 ${Dimensions.get('window').width} 100`} preserveAspectRatio="none">
           <Path
             d={`M 0,50 Q ${Dimensions.get('window').width * 0.25},80 ${Dimensions.get('window').width * 0.5},60 T ${Dimensions.get('window').width},100 L ${Dimensions.get('window').width},0 L 0,0 Z`}
@@ -168,7 +173,7 @@ export const LoginForm = () => {
           />
         </Svg>
 
-        {/* White Section with Form */}
+  
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           scrollEnabled={true}
@@ -176,57 +181,42 @@ export const LoginForm = () => {
         >
           <View style={styles.waveContainer}>
             <View style={styles.form}>
-              <View style={styles.inputGroup}>
-                <View style={styles.inputRow}>
+              <InputField
+                icon={
                   <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ marginRight: 12 }}>
                     <Circle cx="12" cy="8" r="4" stroke="#1F2937" strokeWidth="2" />
                     <Path d="M 4 20 Q 4 14 12 14 Q 20 14 20 20" stroke="#1F2937" strokeWidth="2" fill="none" />
                   </Svg>
-                  <TextInput
-                    style={styles.input}
-                    value={playerName}
-                    onChangeText={setPlayerName}
-                    placeholder="Tu Nombre"
-                    placeholderTextColor="#9CA3AF"
-                    maxLength={20}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.inputRow}>
+                }
+                value={playerName}
+                onChangeText={setPlayerName}
+                placeholder="Tu Nombre"
+                maxLength={20}
+                autoCapitalize="words"
+              />
+              <InputField
+                icon={
                   <Svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ marginRight: 12 }}>
                     <Path d="M 7 10 L 7 8 Q 7 4 12 4 Q 17 4 17 8 L 17 10 L 19 10 L 19 22 L 5 22 L 5 10 Z" stroke="#1F2937" strokeWidth="2" fill="none" />
                     <Circle cx="12" cy="16" r="1.5" fill="#1F2937" />
                   </Svg>
-                  <TextInput
-                    style={[styles.input, styles.uppercaseInput]}
-                    value={roomId}
-                    onChangeText={(text) => setRoomId(text.toUpperCase())}
-                    placeholder="ID de Sala"
-                    placeholderTextColor="#9CA3AF"
-                    maxLength={10}
-                    autoCapitalize="characters"
-                  />
-                </View>
-              </View>
+                }
+                value={roomId}
+                onChangeText={(text) => setRoomId(text.toUpperCase())}
+                placeholder="ID de Sala"
+                maxLength={10}
+                autoCapitalize="characters"
+              />
 
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  (isLoading || !playerName.trim() || !roomId.trim()) &&
-                    styles.buttonDisabled,
-                ]}
+              <Button
                 onPress={handleJoinGame}
-                disabled={isLoading || !playerName.trim() || !roomId.trim()}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.buttonText}>ÚNIRSE A LA FIESTA</Text>
-                )}
-              </TouchableOpacity>
+                isLoading={isLoading}
+                disabled={!playerName.trim() || !roomId.trim()}
+                text="ÚNIRSE A LA FIESTA"
+              />
+            </View>
+            <View>
+              <Text style={styles.versionText}>Versión 1.3.1</Text>
             </View>
           </View>
         </ScrollView>
@@ -235,13 +225,13 @@ export const LoginForm = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeConfig) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
   purpleSection: {
-    backgroundColor: "#6D449B",
+    backgroundColor: theme.primaryColor,
     paddingVertical: 60,
     paddingHorizontal: 16,
     justifyContent: "center",
@@ -254,10 +244,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 48,
     fontWeight: "900",
-    color: "#FFCC00",
+    color: theme.secondaryColor,
     letterSpacing: 2,
     textAlign: "center",
     width: "100%",
+    marginTop: 20,
+  },
+  logoImage: {
+    width: 280,
+    height: 120,
+    resizeMode: 'contain',
     marginTop: 20,
   },
   scrollContent: {
@@ -269,7 +265,7 @@ const styles = StyleSheet.create({
   waveContainer: {
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 32,
-    paddingTop: 80,
+    paddingTop: 40,
     paddingBottom: 120,
     minHeight: 350,
     zIndex: 10,
@@ -277,59 +273,16 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 20,
   },
-  inputGroup: {
-    marginBottom: 30,
-  },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#1F2937",
-    paddingBottom: 8,
-  },
-  icon: {
-    fontSize: 20,
-    marginRight: 12,
-    color: "#1F2937",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#1F2937",
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: "#1F2937",
-    padding: 0,
-    backgroundColor: "transparent",
-  },
-  uppercaseInput: {
-    textTransform: "uppercase",
-  },
-  button: {
-    backgroundColor: "#6D449B",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 40,
-  },
-  buttonDisabled: {
-    backgroundColor: "#9CA3AF",
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
   footerText: {
     textAlign: "center",
     fontSize: 13,
     color: "#6B7280",
     marginTop: 12,
   },
+  versionText: {
+    textAlign: "center",
+    fontSize: 12,
+    color: "#1d1d1d",
+    marginTop: 52,
+  }
 });

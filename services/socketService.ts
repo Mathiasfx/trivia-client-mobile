@@ -1,14 +1,10 @@
 import { io, Socket } from 'socket.io-client';
 import type { Player, Room } from '../types/game';
 
-let expoConfig: any = {};
-
-try {
-  const Constants = require('expo-constants').default;
-  expoConfig = Constants.expoConfig?.extra || {};
-} catch (error) {
-  console.warn('expo-constants no disponible, usando valores por defecto');
-}
+// Configuración de servidor
+const SOCKET_URL = 'https://nest-trivia-api.onrender.com/rooms';
+const RECONNECTION_ATTEMPTS = 10;
+const API_TIMEOUT = 15000;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -20,14 +16,14 @@ class SocketService {
   private apiTimeout: number;
 
   constructor() {
-    this.socketUrl = 'https://nest-trivia-api.onrender.com/rooms';
-    this.reconnectionAttempts = expoConfig.maxReconnectionAttempts || 10;
-    this.apiTimeout = expoConfig.apiTimeout || 15000;
+    this.socketUrl = SOCKET_URL;
+    this.reconnectionAttempts = RECONNECTION_ATTEMPTS;
+    this.apiTimeout = API_TIMEOUT;
   }
 
   connect() {
     this.connectionPromise = new Promise((resolve, reject) => {
-      console.log('Intentando conectar a:', this.socketUrl);
+   
       this.socket = io(this.socketUrl, {
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -47,7 +43,7 @@ class SocketService {
       }, this.apiTimeout);
 
       this.socket.on('connect', () => {
-        console.log('Socket conectado exitosamente');
+     
         clearTimeout(connectionTimeout);
         this.isConnected = true;
         this.emit('connect');
@@ -55,7 +51,7 @@ class SocketService {
       });
 
       this.socket.on('disconnect', () => {
-        console.log('Socket desconectado');
+    
         this.isConnected = false;
         this.emit('disconnect');
       });
@@ -149,16 +145,6 @@ class SocketService {
   async submitAnswer(roomId: string, playerId: string, answer: string) {
     await this.waitForConnection();
     this.socket!.emit('submitAnswer', { roomId, playerId, answer });
-  }
-
-  async startGame(roomId: string, triviaId: string) {
-    await this.waitForConnection();
-    this.socket!.emit('startGame', { roomId, triviaId });
-  }
-
-  async createRoom(roomId: string, triviaId: string) {
-    await this.waitForConnection();
-    this.socket!.emit('createRoom', { roomId, triviaId });
   }
 
   async getRoomState(roomId: string) {
