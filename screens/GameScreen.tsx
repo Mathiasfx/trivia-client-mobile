@@ -15,6 +15,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
 import { useTheme } from '../hooks/useTheme';
+import { useAudio } from '../contexts/AudioContext';
+import { SoundType } from '../services/audioService';
 import { socketService } from '../services/socketService';
 import type { Room, Player } from '../types/game';
 import type { ThemeConfig } from '../contexts/ThemeContext';
@@ -26,6 +28,7 @@ export const GameScreen = () => {
   const navigation = useNavigation<GameScreenNavigationProp>();
   const route = useRoute<GameScreenRouteProp>();
   const { theme } = useTheme();
+  const { playMusic, playSound, stopMusic } = useAudio();
   const { playerId, room: initialRoom } = route.params;
   const styles = createStyles(theme);
 
@@ -58,6 +61,24 @@ export const GameScreen = () => {
   }, [initialRoom]);
 
   useEffect(() => {
+    playMusic(SoundType.MUSIC_GAME);
+
+    return () => {
+      stopMusic().catch(err => {
+        console.error('Error stopping music on unmount:', err);
+      });
+    };
+  }, [playMusic, stopMusic]);
+
+  useEffect(() => {
+    if (gameState === 'finished') {
+      stopMusic().catch(err => {
+        console.error('Error stopping music on game end:', err);
+      });
+    }
+  }, [gameState, stopMusic]);
+
+  useEffect(() => {
 
     if (listenersRegistered.current) return;
     listenersRegistered.current = true;
@@ -85,7 +106,7 @@ export const GameScreen = () => {
         setTotalQuestions(data.totalQuestions);
       }
       
-      //Animation Question and anwserd
+      //Animation Question and answers
       setTimeout(() => {
         resetLayoutAnimation();
         startTimerAnimation(data.timerSeconds * 1000);
@@ -93,9 +114,13 @@ export const GameScreen = () => {
     };
 
     const handleAnswerSubmitted = (data: any) => {
-
       setHasAnswered(true);
       setIsAnswerCorrect(data.correct);
+      if (data.correct) {
+        playSound(SoundType.CORRECT_ANSWER);
+      } else {
+        playSound(SoundType.INCORRECT_ANSWER);
+      }
     };
 
     const handleRankingUpdated = (rankingData: Player[]) => {
@@ -110,7 +135,9 @@ export const GameScreen = () => {
     };
 
     const handleGameEnded = (data: any) => {
-  
+      stopMusic().catch(err => {
+        console.error('Error stopping music:', err);
+      });
       setRanking(data.ranking || []);
       setGameState('finished');
     };
@@ -225,6 +252,7 @@ export const GameScreen = () => {
 
   const handleSelectAnswer = (option: string) => {
     if (hasAnswered || timeRemaining <= 0) return;
+    playSound(SoundType.BUTTON_CLICK);
     setSelectedAnswer(option);
     socketService.submitAnswer(room.id, playerId, option);
   };

@@ -17,6 +17,8 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types/navigation";
 import { useTheme } from "../hooks/useTheme";
+import { useAudio } from "../contexts/AudioContext";
+import { SoundType } from "../services/audioService";
 import { socketService } from "../services/socketService";
 import { Button } from "../components/Button";
 import { InputField } from "../components/InputField";
@@ -35,12 +37,17 @@ const AnimatedImage = Animated.createAnimatedComponent(Image);
 export const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { theme } = useTheme();
+  const { playMusic } = useAudio();
   const [playerName, setPlayerName] = useState("");
   const [roomId, setRoomId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   const styles = createStyles(theme);
+
+  useEffect(() => {
+    playMusic(SoundType.MUSIC_LOGIN_LOBBY);
+  }, [playMusic]);
 
   useEffect(() => {
   
@@ -216,7 +223,7 @@ export const LoginScreen = () => {
               />
             </View>
             <View>
-              <Text style={styles.versionText}>Versión 1.3.1</Text>
+              <Text style={styles.versionText}>Versión 1.4.1</Text>
             </View>
           </View>
         </ScrollView>

@@ -12,6 +12,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
 import { useTheme } from '../hooks/useTheme';
+import { useAudio } from '../contexts/AudioContext';
+import { SoundType } from '../services/audioService';
 import { socketService } from '../services/socketService';
 import type { Room, Player } from '../types/game';
 import type { ThemeConfig } from '../contexts/ThemeContext';
@@ -23,6 +25,7 @@ export const LobbyScreen = () => {
   const navigation = useNavigation<LobbyScreenNavigationProp>();
   const route = useRoute<LobbyScreenRouteProp>();
   const { theme } = useTheme();
+  const { playMusic } = useAudio();
   const { playerName, roomId, playerId, room: initialRoom } = route.params;
   const styles = createStyles(theme);
 
@@ -30,7 +33,10 @@ const [room, setRoom] = useState<Room>(initialRoom);
 const [countdownValue, setCountdownValue] = useState<number | null>(null);
 
   useEffect(() => {
+    playMusic(SoundType.MUSIC_LOGIN_LOBBY);
+  }, [playMusic]);
 
+  useEffect(() => {
     const handleCountdown = () => {
       setCountdownValue(3);
     };
@@ -40,19 +46,17 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
     };
 
     const handlePlayerJoined = (player: Player) => {
-  setRoom(prev => ({ ...prev, players: [...prev.players, player] }));
-};
+      setRoom(prev => ({ ...prev, players: [...prev.players, player] }));
+    };
 
-
-  const handlePlayerLeft = (player: Player) => {
-  setRoom(prev => ({
-    ...prev,
-    players: prev.players.filter(p => p.id !== player.id)
-  }));
-};
+    const handlePlayerLeft = (player: Player) => {
+      setRoom(prev => ({
+        ...prev,
+        players: prev.players.filter(p => p.id !== player.id)
+      }));
+    };
 
     const handleGameStarted = (data: any) => {
-
       navigation.navigate('Game', {
         playerName,
         playerId,
@@ -79,7 +83,7 @@ const [countdownValue, setCountdownValue] = useState<number | null>(null);
       socketService.off('gameStarted', handleGameStarted);
       socketService.off('error', handleError);
     };
-  }, [navigation, playerName, playerId, room]);
+  }, [navigation, playerName, playerId, room, playMusic]);
 
   // Countdown timer
   useEffect(() => {

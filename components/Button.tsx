@@ -7,6 +7,8 @@ import {
   ViewStyle,
   TextStyle,
 } from "react-native";
+import { useAudio } from "../contexts/AudioContext";
+import { SoundType } from "../services/audioService";
 
 interface ButtonProps {
   onPress: () => void;
@@ -15,6 +17,7 @@ interface ButtonProps {
   text: string;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  soundEnabled?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -24,7 +27,17 @@ export const Button: React.FC<ButtonProps> = ({
   text,
   style,
   textStyle,
+  soundEnabled = true,
 }) => {
+  const { playSound } = useAudio();
+
+  const handlePress = async () => {
+    if (soundEnabled) {
+      await playSound(SoundType.BUTTON_CLICK);
+    }
+    onPress();
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -32,7 +45,7 @@ export const Button: React.FC<ButtonProps> = ({
         disabled && styles.buttonDisabled,
         style,
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || isLoading}
     >
       {isLoading ? (
