@@ -1,13 +1,6 @@
-import React, { ReactNode } from 'react';
-import { View, TextInput, StyleSheet, TextInputProps, StyleProp, ViewStyle } from 'react-native';
-
-interface InputFieldProps extends Omit<TextInputProps, 'style'> {
-  icon: ReactNode;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-  inputStyle?: StyleProp<ViewStyle>;
-}
+import React from 'react';
+import { View, TextInput, StyleSheet } from 'react-native';
+import type { InputFieldProps } from '../types/components';
 
 export const InputField = ({
   icon,

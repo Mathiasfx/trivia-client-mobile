@@ -1,18 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { audioService, SoundType } from "../services/audioService";
+import type { AudioContextValue } from "../types/audio";
 
-interface AudioContextType {
-  playSound: (type: SoundType) => Promise<void>;
-  playMusic: (type: SoundType) => Promise<void>;
-  stopMusic: () => Promise<void>;
-  setVolume: (volume: number) => Promise<void>;
-  isMusicEnabled: boolean;
-  isSoundEnabled: boolean;
-  toggleMusic: () => void;
-  toggleSound: () => void;
-}
-
-const AudioContext = createContext<AudioContextType | undefined>(undefined);
+const AudioContext = createContext<AudioContextValue | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,

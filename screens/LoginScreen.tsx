@@ -23,7 +23,7 @@ import { socketService } from "../services/socketService";
 import { Button } from "../components/Button";
 import { InputField } from "../components/InputField";
 import Svg, { Path, Circle } from "react-native-svg";
-import type { ThemeConfig } from "../contexts/ThemeContext";
+import type { ThemeConfig } from "../types/theme";
 
 
 

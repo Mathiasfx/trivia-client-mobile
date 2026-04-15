@@ -1,10 +1,6 @@
 import { io, Socket } from 'socket.io-client';
+import { getAppConfig } from '../constants/config';
 import type { Player, Room } from '../types/game';
-
-// Configuración de servidor
-const SOCKET_URL = 'https://nest-trivia-api.onrender.com/rooms';
-const RECONNECTION_ATTEMPTS = 10;
-const API_TIMEOUT = 15000;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -16,9 +12,10 @@ class SocketService {
   private apiTimeout: number;
 
   constructor() {
-    this.socketUrl = SOCKET_URL;
-    this.reconnectionAttempts = RECONNECTION_ATTEMPTS;
-    this.apiTimeout = API_TIMEOUT;
+    const config = getAppConfig();
+    this.socketUrl = config.socketUrl;
+    this.reconnectionAttempts = config.maxReconnectionAttempts;
+    this.apiTimeout = config.apiTimeout;
   }
 
   connect() {

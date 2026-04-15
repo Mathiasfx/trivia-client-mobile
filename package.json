@@ -1,10 +1,11 @@
 {
   "name": "trivia-client-mobile",
   "version": "1.0.0",
+  "license": "MIT",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "tunnel": " expo start --tunnel",
+    "tunnel": "expo start --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"

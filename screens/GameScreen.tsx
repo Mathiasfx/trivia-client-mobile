@@ -19,7 +19,7 @@ import { useAudio } from '../contexts/AudioContext';
 import { SoundType } from '../services/audioService';
 import { socketService } from '../services/socketService';
 import type { Room, Player } from '../types/game';
-import type { ThemeConfig } from '../contexts/ThemeContext';
+import type { ThemeConfig } from '../types/theme';
 
 type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Game'>;
 type GameScreenRouteProp = RouteProp<RootStackParamList, 'Game'>;

@@ -4,21 +4,10 @@ import {
   Text,
   ActivityIndicator,
   StyleSheet,
-  ViewStyle,
-  TextStyle,
 } from "react-native";
 import { useAudio } from "../contexts/AudioContext";
 import { SoundType } from "../services/audioService";
-
-interface ButtonProps {
-  onPress: () => void;
-  isLoading: boolean;
-  disabled: boolean;
-  text: string;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
-  soundEnabled?: boolean;
-}
+import type { ButtonProps } from "../types/components";
 
 export const Button: React.FC<ButtonProps> = ({
   onPress,
